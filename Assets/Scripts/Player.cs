@@ -26,7 +26,7 @@ public class Player : MonoBehaviour
 
     public float stamina = 100;
     public float maxStamina = 100;
-    public float staminaCooldown;
+    float staminaCooldown;
 
     Vector3 movementForward;
     Vector3 movementRight;
@@ -75,7 +75,7 @@ public class Player : MonoBehaviour
         {
 
             stamina -= 50;
-            rb.velocity += movementForward * 30;
+            rb.velocity += movementForward * 30 + (rb.velocity.y < 0 ? Vector3.up * rb.velocity.y : Vector3.zero);
 
             staminaCooldown = 1;
 
