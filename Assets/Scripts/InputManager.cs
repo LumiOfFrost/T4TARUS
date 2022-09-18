@@ -21,6 +21,12 @@ public static class InputManager
         return Keyboard.current[jump].wasPressedThisFrame;
 
     }
+    public static bool Fall()
+    {
+
+        return !Keyboard.current[jump].isPressed;
+
+    }
 
     public static bool Dash()
     {

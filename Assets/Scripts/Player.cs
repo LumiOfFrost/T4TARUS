@@ -21,12 +21,16 @@ public class Player : MonoBehaviour
     public float jumpHeight = 10;
     public float gravityScale = 3;
 
+    public float fallMultiplier = 2.5f;
+    public float lowJumpMultiplier = 2f;
+
     private float coyoteTime = 0;
     private float jumpBuffer = 0;
 
     public float stamina = 100;
     public float maxStamina = 100;
     float staminaCooldown;
+    public Transform head;
 
     Vector3 movementForward;
     Vector3 movementRight;
@@ -34,7 +38,7 @@ public class Player : MonoBehaviour
     Image sBar;
 
     // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
 
         player = this.gameObject;
@@ -71,16 +75,6 @@ public class Player : MonoBehaviour
             jumpBuffer = 0.2f;
         }
 
-        if (InputManager.Dash() && stamina - 50 >= 0)
-        {
-
-            stamina -= 50;
-            rb.velocity += movementForward * 30 + (rb.velocity.y < 0 ? Vector3.up * rb.velocity.y : Vector3.zero);
-
-            staminaCooldown = 1;
-
-        }
-
         if(staminaCooldown < 0)
         {
 
@@ -96,6 +90,9 @@ public class Player : MonoBehaviour
         coyoteTime -= Time.deltaTime;
 
         UpdateBars();
+
+        head.localRotation = playerCamera.transform.localRotation;
+        head.localRotation = Quaternion.Euler(head.localEulerAngles.x + 60, head.localEulerAngles.y, head.localEulerAngles.z);
 
     }
 
@@ -125,7 +122,18 @@ public class Player : MonoBehaviour
         movementVector += InputManager.MovementVector().y * movementSpeed * movementForward;
         movementVector += InputManager.MovementVector().x * movementSpeed * movementRight;
 
-        velocity.y -= 9.8f * Time.deltaTime * gravityScale;
+        if (velocity.y < 0)
+        {
+            velocity.y -= 9.8f * Time.deltaTime * gravityScale * fallMultiplier;
+        }
+        else if (InputManager.Fall())
+        {
+            velocity.y -= 9.8f * Time.deltaTime * gravityScale * lowJumpMultiplier;
+        }
+        else
+        {
+            velocity.y -= 9.8f * Time.deltaTime * gravityScale;
+        }
 
         if (coyoteTime > 0 && jumpBuffer > 0)
         {
@@ -138,7 +146,7 @@ public class Player : MonoBehaviour
 
         movementVector.y = velocity.y;
 
-        velocity = Vector3.Lerp(velocity, movementVector, coyoteTime > 0 ? 0.1f : 0.025f);
+        velocity = Vector3.Lerp(velocity, movementVector, coyoteTime > 0 ? 0.1f : 0.07f);
 
         rb.velocity = velocity;
 
