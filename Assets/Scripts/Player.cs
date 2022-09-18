@@ -9,7 +9,7 @@ public class Player : MonoBehaviour
     GameObject playerCamera;
     GameObject player;
 
-    Rigidbody rb;
+    CharacterController characterController;
 
     public Vector3 velocity;
     public Vector3 localEulers;
@@ -43,7 +43,7 @@ public class Player : MonoBehaviour
 
         player = this.gameObject;
 
-        rb = player.GetComponent<Rigidbody>();
+        characterController = player.GetComponent<CharacterController>();
 
         playerCamera = GameObject.FindWithTag("PlayerCamera");
         sBar = GameObject.Find("Canvas").transform.Find("StaminaBar").gameObject.GetComponent<Image>();
@@ -108,13 +108,12 @@ public class Player : MonoBehaviour
 
         LayerMask mask = LayerMask.GetMask("Solid");
 
-        if (Physics.CheckSphere(transform.position + transform.up * 0.45f, 0.5f, mask))
+        if (characterController.isGrounded)
         {
             coyoteTime = 0.2f;
             staminaCooldown = 0;
+            if (velocity.y < 0) velocity.y = 0;
         }
-
-        velocity = rb.velocity;
 
         Vector3 movementVector;
         movementVector = new Vector3(0, 0, 0);
@@ -146,9 +145,9 @@ public class Player : MonoBehaviour
 
         movementVector.y = velocity.y;
 
-        velocity = Vector3.Lerp(velocity, movementVector, coyoteTime > 0 ? 0.1f : 0.07f);
+        velocity = Vector3.Lerp(velocity, movementVector, coyoteTime > 0 ? 0.2f : 0.1f);
 
-        rb.velocity = velocity;
+        characterController.Move(velocity * Time.deltaTime);
 
     }
 
