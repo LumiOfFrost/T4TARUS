@@ -15,6 +15,13 @@ public static class InputManager
 
     public static Key jump = Key.Space;
 
+    public static bool Shoot()
+    {
+
+        return Mouse.current.leftButton.wasPressedThisFrame;
+
+    }
+
     public static bool Jump()
     {
 
