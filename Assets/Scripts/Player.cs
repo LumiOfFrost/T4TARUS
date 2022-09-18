@@ -108,7 +108,7 @@ public class Player : MonoBehaviour
 
         LayerMask mask = LayerMask.GetMask("Solid");
 
-        if (Physics.Raycast(transform.position + transform.up * 0.05f, -transform.up, 0.1f, mask, QueryTriggerInteraction.UseGlobal))
+        if (Physics.CheckSphere(transform.position + transform.up * 0.45f, 0.5f, mask))
         {
             coyoteTime = 0.2f;
             staminaCooldown = 0;
