@@ -1,141 +1,207 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
-
-    GameObject player;
-
+    [Header("Variables")]
     Rigidbody rigidBody;
-
-    public LayerMask groundMask;
-    private Vector3 slopeNormal;
+    public Transform cameraTransform;
+    public Transform orientation;
+    ConstantForce gravity;
 
     [Header("Movement")]
-
     public float movementSpeed = 5;
     public float jumpHeight = 10;
+    public float rigidBodyDrag = 6;
+    public float airDrag = 2;
+    public float maxSlopeAngle = 45;
+    public LayerMask groundMask;
 
+    [Header("Air/Jumping")]
     public float fallMultiplier = 2.5f;
     public float lowJumpMultiplier = 2f;
-    public float airMultiplier = 0.4f;
-
+    public float airMovementMultiplier = 0.4f;
+    private bool grounded = false;
     private float coyoteTime = 0;
     private float jumpBuffer = 0;
 
+    [Header("Stamina")]
     public float stamina = 100;
     public float maxStamina = 100;
     float staminaCooldown;
 
     Image sBar;
 
-    // Start is called before the first frame update
-    void Awake()
+    Vector3 SlopeNormal()
     {
 
-        player = this.gameObject;
-
-        rigidBody = player.GetComponent<Rigidbody>();
-
-        sBar = GameObject.Find("Canvas").transform.Find("StaminaBar").gameObject.GetComponent<Image>();
-
-        Cursor.lockState = CursorLockMode.Locked;
+        RaycastHit hit;
+        Physics.Raycast(transform.position, -transform.up, out hit, 1f, groundMask, QueryTriggerInteraction.UseGlobal);
+        return hit.normal;
 
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Awake()
     {
 
-        Cursor.lockState = CursorLockMode.Locked;
+        gravity = GetComponent<ConstantForce>();
+
+        rigidBody = GetComponent<Rigidbody>();
+
+    }
+
+    private void Update()
+    {
+
+        grounded = Physics.CheckSphere(transform.position + Vector3.up * 0.25f, 0.29f, groundMask);
+
+        if (grounded)
+        {
+
+            coyoteTime = 0.2f;
+
+        }
 
         if (InputManager.Jump())
         {
-            jumpBuffer = 0.2f;
-        }
 
-        if(staminaCooldown < 0)
-        {
-
-            stamina += Time.deltaTime * 33;
+            jumpBuffer = 0.3f;
 
         }
 
-        stamina = Mathf.Clamp(stamina, 0, maxStamina);
-
-        staminaCooldown -= Time.deltaTime;
-
-        jumpBuffer -= Time.deltaTime;
         coyoteTime -= Time.deltaTime;
-
-        UpdateBars();
-
-    }
-
-    private void UpdateBars()
-    {
-
-        sBar.fillAmount = Mathf.Lerp(sBar.fillAmount, stamina / maxStamina, 0.08f);
-
-    }
-
-    bool IsOnSlope()
-    {
-
-        RaycastHit ray;
-        Physics.Raycast(transform.position + 0.05f * transform.up, Vector3.down, out ray, 0.1f, LayerMask.GetMask("Default"), QueryTriggerInteraction.UseGlobal);
-
-        slopeNormal = ray.normal;
-
-        return ray.normal != Vector3.up;
+        jumpBuffer -= Time.deltaTime;
 
     }
 
     private void FixedUpdate()
     {
 
-        rigidBody.drag = coyoteTime > 0 ? 5 : 0;
-
-        Vector3 movementVector = InputManager.MovementVector().x * transform.right + InputManager.MovementVector().y * transform.forward;
-
-        if (Physics.CheckSphere(transform.position + transform.up * 0.25f, 0.29f, groundMask, QueryTriggerInteraction.UseGlobal))
-        {
-            coyoteTime = 0.2f;
-            staminaCooldown = 0;
-        }
-
-        if (rigidBody.velocity.y < 0 && coyoteTime <= 0)
-        {
-            rigidBody.velocity += Vector3.up * -39.24f * (fallMultiplier - 1) * Time.deltaTime;
-        }
-        else if (InputManager.Fall() && coyoteTime <= 0)
-        {
-            rigidBody.velocity += Vector3.up * -39.24f * (lowJumpMultiplier - 1) * Time.deltaTime;
-        }
-
-        if (coyoteTime > 0 && jumpBuffer > 0)
+        ManageDrag();
+        GravityAmplifier();
+        if (coyoteTime > 0 && jumpBuffer > 0 && Vector3.Angle(SlopeNormal(), Vector3.up) <= maxSlopeAngle)
         {
 
-            rigidBody.AddForce(jumpHeight * Vector3.up, ForceMode.Impulse);
-            jumpBuffer = 0;
+            rigidBody.velocity = new Vector3(rigidBody.velocity.x, 0, rigidBody.velocity.z);
+            Jump();
             coyoteTime = 0;
+            jumpBuffer = 0;
 
         }
+        PlayerMovement();
+        MovementLimiter();
 
-        if (IsOnSlope())
+        if (transform.position.y < -50)
         {
 
-            movementVector = Vector3.ProjectOnPlane(movementVector, slopeNormal);
+            transform.position = new Vector3(0, 1, 0);
+            rigidBody.velocity = Vector3.zero;
 
         }
 
-        rigidBody.AddForce(movementVector.normalized * movementSpeed * 10f * (coyoteTime > 0 ? 1 : airMultiplier), ForceMode.Force);
+    }
 
-        Vector3 clampedVeloc = Vector3.ClampMagnitude(new Vector3(rigidBody.velocity.x, 0, rigidBody.velocity.z), movementSpeed);
+    void PlayerMovement()
+    {
 
-        rigidBody.velocity = new Vector3(clampedVeloc.x, rigidBody.velocity.y, clampedVeloc.z);
+        float slopeAngle = Vector3.Angle(SlopeNormal(), Vector3.up);
+
+        gravity.enabled = !(grounded && slopeAngle <= maxSlopeAngle);
+
+        Vector3 movementVector = InputManager.MovementVector().x * orientation.right + InputManager.MovementVector().y * orientation.forward;
+
+        movementVector = Vector3.ProjectOnPlane(movementVector, grounded ? SlopeNormal() : Vector3.up);
+
+        if (slopeAngle <= maxSlopeAngle)
+        {
+
+            rigidBody.AddForce(movementVector.normalized * movementSpeed * 10 * (grounded ? 1 : airMovementMultiplier), ForceMode.Acceleration);
+
+        } else if (grounded)
+        {
+
+            rigidBody.AddForce(movementVector.normalized * movementSpeed * 10 * (grounded ? 1 : airMovementMultiplier) * 0.2f, ForceMode.Acceleration);
+
+        }
+
+    }
+
+    void ManageDrag()
+    {
+
+        rigidBody.drag = grounded ? rigidBodyDrag : airDrag;
+
+    }
+
+    void Jump()
+    {
+
+        rigidBody.AddForce(transform.up * jumpHeight, ForceMode.Impulse);
+
+    }
+    
+    void GravityAmplifier()
+    {
+
+        if (rigidBody.velocity.y < 0 && !grounded)
+        {
+
+            rigidBody.AddForce(transform.up * Physics.gravity.y * (fallMultiplier - 1));
+
+        } else if (InputManager.Fall() && !grounded)
+        {
+
+            rigidBody.AddForce(transform.up * Physics.gravity.y * (lowJumpMultiplier - 1));
+
+        }
+
+    }
+
+    void MovementLimiter()
+    {
+
+        Vector3 flatVelocity = new Vector3(rigidBody.velocity.x, 0, rigidBody.velocity.z);
+
+        if (grounded && SlopeNormal() == Vector3.up)
+        {
+
+            if(flatVelocity.magnitude > movementSpeed)
+            {
+
+                flatVelocity = Vector3.Lerp(flatVelocity, flatVelocity.normalized * movementSpeed, 0.16f);
+
+            }
+
+            rigidBody.velocity = new Vector3(flatVelocity.x, rigidBody.velocity.y, flatVelocity.z);
+
+        } else if (grounded && SlopeNormal() != Vector3.up)
+        {
+
+            if (rigidBody.velocity.magnitude > movementSpeed)
+            {
+
+                rigidBody.velocity = Vector3.Lerp(rigidBody.velocity, rigidBody.velocity.normalized * movementSpeed, 0.16f);
+
+            }
+
+        }
+        else
+        {
+
+            if (flatVelocity.magnitude > movementSpeed)
+            {
+
+                flatVelocity = Vector3.Lerp(flatVelocity, flatVelocity.normalized * movementSpeed, 0.2f);
+
+            }
+
+            rigidBody.velocity = new Vector3(flatVelocity.x, rigidBody.velocity.y, flatVelocity.z);
+
+
+        }
 
     }
 
