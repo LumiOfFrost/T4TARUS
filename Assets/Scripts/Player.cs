@@ -23,6 +23,7 @@ public class Player : MonoBehaviour
     private bool grounded = false;
     private float coyoteTime = 0;
     private float jumpBuffer = 0;
+    bool wasGrounded = false;
 
     [Header("Stamina")]
     public float stamina = 100;
@@ -55,6 +56,13 @@ public class Player : MonoBehaviour
 
     }
 
+    private void LateUpdate()
+    {
+
+        wasGrounded = grounded;
+
+    }
+
     private void FixedUpdate()
     {
 
@@ -82,7 +90,7 @@ public class Player : MonoBehaviour
         }
         PlayerMovement();
 
-        if (transform.position.y < -50)
+        if (transform.position.y <= -50)
         {
 
             transform.position = new Vector3(0, 1, 0);
@@ -95,31 +103,22 @@ public class Player : MonoBehaviour
     void PlayerMovement()
     {
 
-        movementVector = Vector3.Lerp(movementVector, InputManager.MovementVector().x * orientation.right + InputManager.MovementVector().y * orientation.forward, 0.2f);
-
-        if (grounded)
+       movementVector = Vector3.Lerp(movementVector, InputManager.MovementVector().x * orientation.right + InputManager.MovementVector().y * orientation.forward, 0.2f);
+       if (characterController.isGrounded)
         {
+
             characterController.Move(movementVector * movementSpeed * Time.deltaTime);
-        }
-        else
+        
+        } else
         {
 
-            if (movementVector.x > 0 && velocity.velocity.x + movementVector.x * movementSpeed * Time.deltaTime < movementSpeed)
+            if (wasGrounded)
             {
-                velocity.velocity.x += movementVector.x * Time.deltaTime * movementSpeed * velocity.velocity.x >= -movementSpeed ? 1 : 0.4f;
+                velocity.velocity.x += movementVector.x * movementSpeed;
+                velocity.velocity.z += movementVector.z * movementSpeed;
             }
-            if (movementVector.x < 0 && velocity.velocity.x + movementVector.x * movementSpeed * Time.deltaTime > -movementSpeed)
-            {
-                velocity.velocity.x += movementVector.x * Time.deltaTime * movementSpeed * velocity.velocity.x <= movementSpeed ? 1 : 0.4f;
-            }
-            if (movementVector.z > 0 && velocity.velocity.z + movementVector.z * movementSpeed * Time.deltaTime < movementSpeed)
-            {
-                velocity.velocity.z += movementVector.z * Time.deltaTime * movementSpeed * velocity.velocity.z >= -movementSpeed ? 1 : 0.4f;
-            }
-            if (movementVector.z < 0 && velocity.velocity.z + movementVector.z * movementSpeed * Time.deltaTime > -movementSpeed)
-            {
-                velocity.velocity.z += movementVector.z * Time.deltaTime * movementSpeed * velocity.velocity.z <= movementSpeed ? 1 : 0.4f;
-            }
+
+            velocity.velocity += movementVector * movementSpeed * Time.deltaTime * 0.25f;
 
         }
 

@@ -11,7 +11,10 @@ public class Velocity : MonoBehaviour
     public float gravityValue = -19.62f;
     public Vector3 velocity;
     CharacterController cc;
-    public float friction = 1;
+    public float groundDamp = 3;
+    public float airDamp = 3;
+
+    float floot = 0;
 
     private void Awake()
     {
@@ -26,41 +29,31 @@ public class Velocity : MonoBehaviour
             velocity.y += gravityValue * Time.deltaTime;
         }
 
-        Frictify(friction);
-
         cc.Move(velocity * Time.deltaTime);
+
+        Frictify();
 
     }
 
-    void Frictify(float t)
+    void Frictify()
     {
 
         if (cc.isGrounded)
         {
 
-            float drop;
-            float speed;
-            float newSpeed;
-            Vector3 veloc = velocity;
-
-            veloc.y = 0;
-            speed = veloc.magnitude;
-            drop = 0.6f * Time.deltaTime * t;
-
-            newSpeed = speed - drop;
-
-            veloc = veloc.normalized * newSpeed;
-
-            velocity = new Vector3(veloc.x, velocity.y, veloc.z);
+            velocity.x = Mathf.SmoothDamp(velocity.x, 0, ref floot, groundDamp);
+            velocity.z = Mathf.SmoothDamp(velocity.z, 0, ref floot, groundDamp);
 
         }
         else
         {
 
-            velocity.x = Mathf.Lerp(velocity.x, 0, 0.01f);
-            velocity.z = Mathf.Lerp(velocity.z, 0, 0.01f);
+            velocity.x = Mathf.SmoothDamp(velocity.x, 0, ref floot, airDamp);
+            velocity.z = Mathf.SmoothDamp(velocity.z, 0, ref floot, airDamp);
 
         }
+
+        
 
     }
 

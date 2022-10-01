@@ -34279,18 +34279,8 @@ MonoBehaviour:
   orientation: {fileID: 1072164780}
   movementSpeed: 7.5
   jumpHeight: 10
-  rigidBodyDrag: 0
-  airDrag: 0
-  groundLimiterStrength: 0.2
-  airLimiterStrength: 0.08
-  maxSlopeAngle: 45
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 536870939
   fallMultiplier: 1.5
-  lowJumpMultiplier: 2
-  airMovementMultiplier: 0.4
-  gravity: -19.62
+  lowJumpMultiplier: 1.75
   stamina: 100
   maxStamina: 100
 --- !u!114 &1208177475
@@ -34321,7 +34311,7 @@ CharacterController:
   serializedVersion: 2
   m_Height: 2
   m_Radius: 0.3
-  m_SlopeLimit: 45
+  m_SlopeLimit: 46
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
@@ -34341,6 +34331,8 @@ MonoBehaviour:
   useGravity: 1
   gravityValue: -19.62
   velocity: {x: 0, y: 0, z: 0}
+  groundDamp: 0.04
+  airDamp: 1
 --- !u!43 &1216841080
 Mesh:
   m_ObjectHideFlags: 0
